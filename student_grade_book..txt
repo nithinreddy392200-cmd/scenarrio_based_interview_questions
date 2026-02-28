@@ -1,0 +1,120 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_STUDENTS 100
+#define MAX_NAME 50
+#define MAX_SUBJECTS 5
+
+// Student structure
+typedef struct {
+    char name[MAX_NAME];
+    int marks[MAX_SUBJECTS];
+    float gpa;
+} Student;
+
+// Function prototypes
+int getValidInt(char *prompt, int min, int max);
+void computeGPA(Student *s, int num_subjects);
+void sortStudents(Student *students, int count);
+void saveToFile(Student *students, int count);
+
+int main() {
+    int num_students, num_subjects, i, j;
+    
+    printf("Enter number of students (1-%d): ", MAX_STUDENTS);
+    num_students = getValidInt("students", 1, MAX_STUDENTS);
+    
+    printf("Enter number of subjects (1-%d): ", MAX_SUBJECTS);
+    num_subjects = getValidInt("subjects", 1, MAX_SUBJECTS);
+    
+    Student *students = malloc(num_students * sizeof(Student));
+    if (!students) {
+        printf("Memory allocation failed!\n");
+        return 1;
+    }
+    
+    // Input student data
+    for (i = 0; i < num_students; i++) {
+        printf("\n--- Student %d ---\n", i+1);
+        printf("Name: ");
+        fgets(students[i].name, MAX_NAME, stdin);
+        students[i].name[strcspn(students[i].name, "\n")] = 0;  // Remove newline
+        
+        printf("Marks (0-100 each):\n");
+        int total = 0;
+        for (j = 0; j < num_subjects; j++) {
+            printf("Subject %d: ", j+1);
+            students[i].marks[j] = getValidInt("mark", 0, 100);
+            total += students[i].marks[j];
+        }
+        computeGPA(&students[i], num_subjects);
+        printf("GPA: %.2f\n", students[i].gpa);
+    }
+    
+    // Sort by GPA descending
+    sortStudents(students, num_students);
+    
+    // Display sorted results
+    printf("\n--- Sorted by GPA (High to Low) ---\n");
+    printf("Name\t\tGPA\n");
+    printf("--------------------------------\n");
+    for (i = 0; i < num_students; i++) {
+        printf("%-15s\t%.2f\n", students[i].name, students[i].gpa);
+    }
+    
+    // Save to CSV file
+    saveToFile(students, num_students);
+    printf("\nData saved to grades.csv\n");
+    
+    free(students);
+    return 0;
+}
+
+// Get validated integer input
+int getValidInt(char *prompt, int min, int max) {
+    int val;
+    while (scanf("%d", &val) != 1 || val < min || val > max) {
+        printf("Invalid %s! Enter %d-%d: ", prompt, min, max);
+        while (getchar() != '\n');  // Clear input buffer
+    }
+    return val;
+}
+
+// Compute GPA from marks
+void computeGPA(Student *s, int num_subjects) {
+    int total = 0;
+    for (int i = 0; i < num_subjects; i++) {
+        total += s->marks[i];
+    }
+    s->gpa = (float)total / num_subjects / 10.0;  // GPA scale 0-10
+}
+
+// Bubble sort students by GPA descending
+void sortStudents(Student *students, int count) {
+    int i, j;
+    Student temp;
+    for (i = 0; i < count - 1; i++) {
+        for (j = 0; j < count - i - 1; j++) {
+            if (students[j].gpa < students[j+1].gpa) {
+                temp = students[j];
+                students[j] = students[j+1];
+                students[j+1] = temp;
+            }
+        }
+    }
+}
+
+// Save sorted data to CSV
+void saveToFile(Student *students, int count) {
+    FILE *fp = fopen("grades.csv", "w");
+    if (!fp) {
+        printf("Cannot create grades.csv!\n");
+        return;
+    }
+    fprintf(fp, "Name,GPA\n");
+    for (int i = 0; i < count; i++) {
+        fprintf(fp, "\"%s\",%.2f\n", students[i].name, students[i].gpa);
+    }
+    fclose(fp);
+}
